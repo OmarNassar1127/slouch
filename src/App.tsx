@@ -192,9 +192,16 @@ function App() {
               </div>
             </div>
 
-            {/* Browser mockup */}
+            {/* Hero image */}
             <div className="lg:pl-8">
-              <BrowserMockup />
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 blur-3xl rounded-3xl"></div>
+                <img 
+                  src="/hero-image.png" 
+                  alt="AI posture tracking visualization" 
+                  className="relative rounded-2xl shadow-2xl w-full"
+                />
+              </div>
             </div>
           </div>
         </div>
