@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Offset for fixed navbar */
+[id] {
+  scroll-margin-top: 80px;
+}
