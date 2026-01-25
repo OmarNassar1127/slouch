@@ -1,5 +1,39 @@
 import { useState } from 'react'
 
+// FAQ Item component with collapse animation
+const FaqItem = ({ question, answer, isOpen, onClick }: { 
+  question: string; 
+  answer: string; 
+  isOpen: boolean; 
+  onClick: () => void;
+}) => (
+  <div className="border-b border-slate-800 last:border-0">
+    <button
+      onClick={onClick}
+      className="w-full py-6 flex items-center justify-between text-left group"
+    >
+      <h3 className="font-semibold pr-4 group-hover:text-emerald-400 transition-colors">{question}</h3>
+      <div className={`flex-shrink-0 w-6 h-6 rounded-full border border-slate-700 flex items-center justify-center transition-all duration-300 ${isOpen ? 'bg-emerald-500 border-emerald-500 rotate-180' : 'group-hover:border-slate-500'}`}>
+        <svg 
+          className={`w-3 h-3 transition-transform duration-300 ${isOpen ? 'text-white' : 'text-slate-400'}`} 
+          fill="none" 
+          stroke="currentColor" 
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+    </button>
+    <div 
+      className={`grid transition-all duration-300 ease-in-out ${isOpen ? 'grid-rows-[1fr] opacity-100 pb-6' : 'grid-rows-[0fr] opacity-0'}`}
+    >
+      <div className="overflow-hidden">
+        <p className="text-slate-400 text-sm leading-relaxed">{answer}</p>
+      </div>
+    </div>
+  </div>
+)
+
 // Logo component - using generated image
 const Logo = ({ className = "w-10 h-10" }: { className?: string }) => (
   <img src="/slouch-logo.png" alt="Slouch" className={className} />
@@ -94,6 +128,30 @@ const BrowserMockup = () => (
 function App() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
+  const faqItems = [
+    { 
+      q: 'Is my webcam footage stored or sent anywhere?', 
+      a: 'No. All AI processing runs locally in your browser using TensorFlow.js. Your webcam feed is never recorded, stored, or transmitted. We literally cannot see your video.' 
+    },
+    { 
+      q: 'What cameras and browsers are supported?', 
+      a: 'Any webcam works — built-in, USB, or phone-as-webcam. We support Chrome, Edge, and Firefox on desktop. Safari support is coming soon.' 
+    },
+    { 
+      q: 'Can I use Slouch during video calls?', 
+      a: 'Yes! Slouch runs in a separate tab and works alongside Zoom, Meet, Teams, or any other video call app.' 
+    },
+    { 
+      q: 'How does this compare to Upright GO?', 
+      a: 'Upright GO is a $79 wearable you stick to your back. Slouch uses your existing webcam — nothing to buy, charge, or lose. Same result, zero friction.' 
+    },
+    { 
+      q: 'How quickly will I see results?', 
+      a: 'Most users report noticeable improvement in 1-2 weeks. The key is consistency — even 30 minutes of monitored work per day builds lasting muscle memory.' 
+    },
+  ]
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -538,33 +596,15 @@ function App() {
             Frequently asked questions
           </h2>
 
-          <div className="space-y-6">
-            {[
-              { 
-                q: 'Is my webcam footage stored or sent anywhere?', 
-                a: 'No. All AI processing runs locally in your browser using TensorFlow.js. Your webcam feed is never recorded, stored, or transmitted. We literally cannot see your video.' 
-              },
-              { 
-                q: 'What cameras and browsers are supported?', 
-                a: 'Any webcam works — built-in, USB, or phone-as-webcam. We support Chrome, Edge, and Firefox on desktop. Safari support is coming soon.' 
-              },
-              { 
-                q: 'Can I use Slouch during video calls?', 
-                a: 'Yes! Slouch runs in a separate tab and works alongside Zoom, Meet, Teams, or any other video call app.' 
-              },
-              { 
-                q: 'How does this compare to Upright GO?', 
-                a: 'Upright GO is a $79 wearable you stick to your back. Slouch uses your existing webcam — nothing to buy, charge, or lose. Same result, zero friction.' 
-              },
-              { 
-                q: 'How quickly will I see results?', 
-                a: 'Most users report noticeable improvement in 1-2 weeks. The key is consistency — even 30 minutes of monitored work per day builds lasting muscle memory.' 
-              },
-            ].map((item, i) => (
-              <div key={i} className="pb-6 border-b border-slate-800 last:border-0">
-                <h3 className="font-semibold mb-3">{item.q}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{item.a}</p>
-              </div>
+          <div>
+            {faqItems.map((item, i) => (
+              <FaqItem
+                key={i}
+                question={item.q}
+                answer={item.a}
+                isOpen={openFaq === i}
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              />
             ))}
           </div>
         </div>
