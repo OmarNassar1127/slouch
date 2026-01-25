@@ -39,6 +39,115 @@ const Logo = ({ className = "w-10 h-10" }: { className?: string }) => (
   <img src="/slouch-logo.png" alt="Slouch" className={className} />
 )
 
+// Legal Modal component
+const LegalModal = ({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) => (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={onClose}>
+    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+    <div 
+      className="relative bg-slate-900 border border-slate-700 rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+      onClick={e => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between p-6 border-b border-slate-800">
+        <h2 className="text-xl font-bold">{title}</h2>
+        <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)] text-sm text-slate-300 space-y-4">
+        {children}
+      </div>
+    </div>
+  </div>
+)
+
+// Privacy Policy content
+const PrivacyPolicy = () => (
+  <>
+    <p className="text-slate-400 text-xs">Last updated: January 2025</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">1. Information We Collect</h3>
+    <p>Slouch processes webcam data <strong>entirely locally on your device</strong>. We do not collect, store, transmit, or have access to any video footage, images, or biometric data from your webcam. All pose detection and posture analysis occurs client-side using your browser's computing resources.</p>
+    <p>We may collect: email addresses (if voluntarily provided for waitlist), anonymous usage analytics, and technical information such as browser type and device category for service improvement purposes.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">2. How We Use Information</h3>
+    <p>Any information collected is used solely to: communicate with you about the service, improve our product, and ensure technical functionality. We do not sell, rent, or share your personal information with third parties for marketing purposes.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">3. Data Security</h3>
+    <p>Since webcam processing occurs locally, your visual data never leaves your device. For any data we do collect (such as email), we implement reasonable security measures. However, no method of transmission over the Internet is 100% secure, and we cannot guarantee absolute security.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">4. Third-Party Services</h3>
+    <p>Our service may utilize third-party services for analytics, payment processing, or other functionality. These services have their own privacy policies, and we encourage you to review them. We are not responsible for the privacy practices of third parties.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">5. Cookies and Tracking</h3>
+    <p>We may use cookies and similar technologies to enhance your experience and collect anonymous usage data. You can control cookie settings through your browser.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">6. Children's Privacy</h3>
+    <p>Slouch is not intended for children under 13. We do not knowingly collect information from children under 13. If you believe we have collected such information, please contact us immediately.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">7. Changes to This Policy</h3>
+    <p>We reserve the right to modify this privacy policy at any time. Changes will be effective immediately upon posting. Your continued use of the service constitutes acceptance of any modifications.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">8. Contact</h3>
+    <p>For privacy-related inquiries, contact us at privacy@slouch.app</p>
+  </>
+)
+
+// Terms of Service content  
+const TermsOfService = () => (
+  <>
+    <p className="text-slate-400 text-xs">Last updated: January 2025</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">1. Acceptance of Terms</h3>
+    <p>By accessing or using Slouch ("the Service"), you agree to be bound by these Terms of Service. If you do not agree to these terms, do not use the Service. We reserve the right to modify these terms at any time without prior notice.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">2. Service Description</h3>
+    <p>Slouch provides AI-powered posture monitoring software that runs in your web browser. The Service is provided for informational and wellness purposes only and is <strong>NOT a medical device, medical advice, or healthcare service</strong>.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">3. No Medical Advice</h3>
+    <p className="text-amber-400/90">THE SERVICE IS NOT INTENDED TO DIAGNOSE, TREAT, CURE, OR PREVENT ANY DISEASE OR MEDICAL CONDITION. Slouch is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of a qualified healthcare provider with any questions regarding a medical condition. Never disregard professional medical advice or delay seeking it because of something related to this Service.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">4. Disclaimer of Warranties</h3>
+    <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR ACCURACY. We do not warrant that the Service will be uninterrupted, error-free, secure, or free of viruses or other harmful components. We make no guarantees regarding posture improvement, health outcomes, or the accuracy of posture detection.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">5. Limitation of Liability</h3>
+    <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, SLOUCH, ITS OWNERS, OPERATORS, AFFILIATES, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, PUNITIVE, OR EXEMPLARY DAMAGES, INCLUDING BUT NOT LIMITED TO DAMAGES FOR LOSS OF PROFITS, GOODWILL, USE, DATA, OR OTHER INTANGIBLE LOSSES, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE.</p>
+    <p>IN NO EVENT SHALL OUR TOTAL LIABILITY EXCEED THE AMOUNT YOU PAID TO US IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR ONE HUNDRED DOLLARS ($100), WHICHEVER IS LESS.</p>
+    <p>THIS LIMITATION APPLIES TO ALL CLAIMS, WHETHER BASED ON WARRANTY, CONTRACT, TORT, STRICT LIABILITY, OR ANY OTHER LEGAL THEORY, AND WHETHER OR NOT WE HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">6. Assumption of Risk</h3>
+    <p>You acknowledge that posture correction and physical positioning involves inherent risks. You assume full responsibility for any risks, injuries, or damages, known or unknown, that may result from using the Service. You agree to consult a physician before beginning any posture correction program.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">7. Indemnification</h3>
+    <p>You agree to indemnify, defend, and hold harmless Slouch, its owners, operators, affiliates, employees, and agents from and against any and all claims, damages, losses, liabilities, costs, and expenses (including reasonable attorneys' fees) arising from or related to: (a) your use of the Service; (b) your violation of these Terms; (c) your violation of any rights of another party; or (d) any claim that your use of the Service caused damage to a third party.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">8. Refund Policy</h3>
+    <p className="text-amber-400/90 font-medium">ALL SALES ARE FINAL. NO REFUNDS WILL BE PROVIDED UNDER ANY CIRCUMSTANCES. By purchasing a subscription, you acknowledge and agree that you are not entitled to any refund, whether full or partial, for any reason, including but not limited to: dissatisfaction with the Service, failure to use the Service, technical issues, change of mind, or cancellation of subscription. This no-refund policy applies to all payment methods and subscription types.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">9. Subscription and Billing</h3>
+    <p>Paid subscriptions will automatically renew unless cancelled before the renewal date. You are responsible for cancelling your subscription if you do not wish to be charged. We reserve the right to change pricing at any time with notice to existing subscribers.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">10. Termination</h3>
+    <p>We reserve the right to suspend or terminate your access to the Service at any time, for any reason, without notice or liability. Upon termination, all rights granted to you under these Terms will immediately cease.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">11. Governing Law and Disputes</h3>
+    <p>These Terms shall be governed by the laws of the Netherlands, without regard to conflict of law principles. Any dispute arising from these Terms or the Service shall be resolved exclusively in the courts of Amsterdam, Netherlands. You waive any objections to jurisdiction and venue in such courts.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">12. Waiver of Class Action</h3>
+    <p>YOU AGREE THAT ANY DISPUTE RESOLUTION PROCEEDINGS WILL BE CONDUCTED ONLY ON AN INDIVIDUAL BASIS AND NOT IN A CLASS, CONSOLIDATED, OR REPRESENTATIVE ACTION. You waive any right to participate in a class action lawsuit or class-wide arbitration.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">13. Severability</h3>
+    <p>If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">14. Entire Agreement</h3>
+    <p>These Terms, together with our Privacy Policy, constitute the entire agreement between you and Slouch regarding the Service and supersede all prior agreements and understandings.</p>
+    
+    <h3 className="font-semibold text-white text-base pt-2">15. Contact</h3>
+    <p>For questions about these Terms, contact us at legal@slouch.app</p>
+  </>
+)
+
 // Animated spine illustration for hero
 const SpineIllustration = () => (
   <div className="relative w-full max-w-md mx-auto">
@@ -129,6 +238,8 @@ function App() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showTerms, setShowTerms] = useState(false)
 
   const faqItems = [
     { 
@@ -618,15 +729,27 @@ function App() {
             <span className="font-medium text-slate-400">Slouch</span>
           </div>
           <div className="flex items-center gap-6 text-sm text-slate-500">
-            <a href="#" className="hover:text-slate-300 transition-colors">Privacy</a>
-            <a href="#" className="hover:text-slate-300 transition-colors">Terms</a>
-            <a href="https://twitter.com/omarnassar" className="hover:text-slate-300 transition-colors">Twitter</a>
+            <button onClick={() => setShowPrivacy(true)} className="hover:text-slate-300 transition-colors">Privacy</button>
+            <button onClick={() => setShowTerms(true)} className="hover:text-slate-300 transition-colors">Terms</button>
+            <a href="https://twitter.com/omarnassar" target="_blank" rel="noopener noreferrer" className="hover:text-slate-300 transition-colors">Twitter</a>
           </div>
           <div className="text-slate-500 text-sm">
             © 2025 Slouch
           </div>
         </div>
       </footer>
+
+      {/* Legal Modals */}
+      {showPrivacy && (
+        <LegalModal title="Privacy Policy" onClose={() => setShowPrivacy(false)}>
+          <PrivacyPolicy />
+        </LegalModal>
+      )}
+      {showTerms && (
+        <LegalModal title="Terms of Service" onClose={() => setShowTerms(false)}>
+          <TermsOfService />
+        </LegalModal>
+      )}
 
       {/* Gradient animation keyframes */}
       <style>{`
