@@ -74,7 +74,7 @@ const FaqItem = ({ question, answer, isOpen, onClick }: {
 
 // Logo component
 const Logo = ({ className = "w-10 h-10" }: { className?: string }) => (
-  <img src="/slouch-logo.png" alt="Slouch" className={className} />
+  <img src={`${import.meta.env.BASE_URL}slouch-logo.png`} alt="Slouch" className={className} />
 )
 
 function App() {
@@ -224,7 +224,7 @@ function App() {
               <div className="relative">
                 <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 blur-3xl rounded-3xl"></div>
                 <img 
-                  src="/hero-image.png" 
+                  src={`${import.meta.env.BASE_URL}hero-image.png`}
                   alt="AI posture tracking visualization" 
                   className="relative rounded-2xl shadow-2xl w-full"
                 />

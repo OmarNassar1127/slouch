@@ -7,7 +7,7 @@ export default function Privacy() {
       <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-xl border-b border-slate-800/50">
         <div className="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <img src="/slouch-logo.png" alt="Slouch" className="w-9 h-9" />
+            <img src={`${import.meta.env.BASE_URL}slouch-logo.png`} alt="Slouch" className="w-9 h-9" />
             <span className="font-semibold text-lg tracking-tight">Slouch</span>
           </Link>
           <Link to="/" className="text-sm text-slate-400 hover:text-white transition-colors">
@@ -170,7 +170,7 @@ export default function Privacy() {
       <footer className="py-8 px-6 border-t border-slate-800/50">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/slouch-logo.png" alt="Slouch" className="w-7 h-7" />
+            <img src={`${import.meta.env.BASE_URL}slouch-logo.png`} alt="Slouch" className="w-7 h-7" />
             <span className="font-medium text-slate-400">Slouch</span>
           </Link>
           <div className="flex items-center gap-6 text-sm text-slate-500">
