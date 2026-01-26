@@ -15,12 +15,18 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Slouch — AI Posture Correction in Your Browser" />
     <meta property="og:description" content="Fix your posture with just your webcam. No hardware needed. AI-powered and 100% private." />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:url" content="https://slouch.pro" />
+    <meta property="og:image" content="https://slouch.pro/og-image.png" />
     
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@omarnassar" />
     <meta name="twitter:title" content="Slouch — AI Posture Correction in Your Browser" />
     <meta name="twitter:description" content="Fix your posture with just your webcam. No hardware needed. AI-powered and 100% private." />
+    <meta name="twitter:image" content="https://slouch.pro/og-image.png" />
+    
+    <!-- Canonical -->
+    <link rel="canonical" href="https://slouch.pro" />
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,6 +36,15 @@
     <style>
       * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
     </style>
+    <script>
+      // Handle SPA redirect from 404.html (GitHub Pages)
+      (function() {
+        const redirect = new URLSearchParams(window.location.search).get('redirect');
+        if (redirect) {
+          history.replaceState(null, '', decodeURIComponent(redirect));
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

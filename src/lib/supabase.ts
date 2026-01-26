@@ -11,7 +11,13 @@ export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null
 
-export async function addToWaitlist(email: string): Promise<{ success: boolean; error?: string }> {
+export async function addToWaitlist(email: string, honeypot?: string): Promise<{ success: boolean; error?: string }> {
+  // Honeypot check - if filled, it's a bot
+  if (honeypot) {
+    // Pretend success to not alert the bot
+    return { success: true }
+  }
+
   if (!supabase) {
     console.error('Supabase not configured')
     return { success: false, error: 'Service temporarily unavailable' }
@@ -25,7 +31,7 @@ export async function addToWaitlist(email: string): Promise<{ success: boolean; 
     if (error) {
       // Duplicate email
       if (error.code === '23505') {
-        return { success: true } // Treat as success, they're already on the list
+        return { success: false, error: 'already_exists' }
       }
       console.error('Supabase error:', error)
       return { success: false, error: 'Failed to join waitlist' }

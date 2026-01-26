@@ -108,16 +108,19 @@ function App() {
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [honeypot, setHoneypot] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setSubmitError('')
 
-    const result = await addToWaitlist(email)
+    const result = await addToWaitlist(email, honeypot)
     
     if (result.success) {
       setSubmitted(true)
+    } else if (result.error === 'already_exists') {
+      setSubmitError('Oops! This email is already on the list 🎉')
     } else {
       setSubmitError(result.error || 'Something went wrong')
     }
@@ -521,6 +524,17 @@ function App() {
                 </div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* Honeypot field - hidden from humans, bots will fill it */}
+                  <input
+                    type="text"
+                    name="website"
+                    value={honeypot}
+                    onChange={(e) => setHoneypot(e.target.value)}
+                    autoComplete="off"
+                    tabIndex={-1}
+                    className="absolute opacity-0 h-0 w-0 pointer-events-none"
+                    aria-hidden="true"
+                  />
                   <input
                     type="email"
                     placeholder="you@email.com"
@@ -531,7 +545,7 @@ function App() {
                     className="w-full backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all disabled:opacity-50"
                   />
                   {submitError && (
-                    <p className="text-red-400 text-sm">{submitError}</p>
+                    <p className={`text-sm ${submitError.includes('already') ? 'text-emerald-400' : 'text-red-400'}`}>{submitError}</p>
                   )}
                   <button
                     type="submit"
