@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
+import type { NormalizedLandmark } from '@mediapipe/tasks-vision'
 import { useAuth } from '../context/AuthContext'
 
 type PostureStatus = 'good' | 'bad' | 'warning' | 'calibrating' | 'no-person'
@@ -63,6 +64,7 @@ export default function PostureApp() {
   
   const badPostureStartRef = useRef<number | null>(null)
   const isInBadPostureRef = useRef(false)
+  const detectPoseRef = useRef<() => void>(() => {})
 
   const [isLoading, setIsLoading] = useState(true)
   const [cameraActive, setCameraActive] = useState(false)
@@ -89,7 +91,8 @@ export default function PostureApp() {
     lastNotificationRef.current = now
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      const audioContext = new AudioContextClass()
       const oscillator = audioContext.createOscillator()
       const gainNode = audioContext.createGain()
       
@@ -104,7 +107,7 @@ export default function PostureApp() {
       
       oscillator.start(audioContext.currentTime)
       oscillator.stop(audioContext.currentTime + 0.3)
-    } catch (e) {
+    } catch {
       console.log('Audio not available')
     }
   }, [])
@@ -150,7 +153,7 @@ export default function PostureApp() {
     return () => clearInterval(interval)
   }, [cameraActive])
 
-  const calculatePostureMetrics = (landmarks: any[]): PostureMetrics | null => {
+  const calculatePostureMetrics = (landmarks: NormalizedLandmark[]): PostureMetrics | null => {
     const nose = landmarks[0]
     const leftShoulder = landmarks[11]
     const rightShoulder = landmarks[12]
@@ -210,11 +213,11 @@ export default function PostureApp() {
   const detectPose = useCallback(() => {
     if (!isRunningRef.current) return
     if (!videoRef.current || !canvasRef.current || !poseLandmarkerRef.current) {
-      animationFrameRef.current = requestAnimationFrame(detectPose)
+      animationFrameRef.current = requestAnimationFrame(() => detectPoseRef.current())
       return
     }
     if (videoRef.current.readyState < 2) {
-      animationFrameRef.current = requestAnimationFrame(detectPose)
+      animationFrameRef.current = requestAnimationFrame(() => detectPoseRef.current())
       return
     }
 
@@ -222,7 +225,7 @@ export default function PostureApp() {
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     if (!ctx) {
-      animationFrameRef.current = requestAnimationFrame(detectPose)
+      animationFrameRef.current = requestAnimationFrame(() => detectPoseRef.current())
       return
     }
 
@@ -308,8 +311,13 @@ export default function PostureApp() {
       setPostureStatus(currentStatus)
     }
 
-    animationFrameRef.current = requestAnimationFrame(detectPose)
+    animationFrameRef.current = requestAnimationFrame(() => detectPoseRef.current())
   }, [playNotificationSound])
+
+  // Keep the ref updated with the latest detectPose
+  useEffect(() => {
+    detectPoseRef.current = detectPose
+  }, [detectPose])
 
   const startCamera = async () => {
     try {
