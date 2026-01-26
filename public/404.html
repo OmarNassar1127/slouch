@@ -5,9 +5,9 @@
     <title>Slouch</title>
     <script>
       // Single Page App routing fix for GitHub Pages
-      // Redirects all 404s to index.html with the path as a query param
-      const path = window.location.pathname + window.location.search + window.location.hash;
-      window.location.replace('/' + '?redirect=' + encodeURIComponent(path));
+      const segment = '/slouch'; // Change to '' when using custom domain
+      const path = window.location.pathname.replace(segment, '') + window.location.search + window.location.hash;
+      window.location.replace(segment + '/?redirect=' + encodeURIComponent(path));
     </script>
   </head>
   <body>
