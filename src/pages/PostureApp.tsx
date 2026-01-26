@@ -452,9 +452,7 @@ export default function PostureApp() {
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 transition-shadow">
-              <img src={`${import.meta.env.BASE_URL}slouch-logo.png`} alt="Slouch" className="w-6 h-6" />
-            </div>
+            <img src={`${import.meta.env.BASE_URL}slouch-logo.png`} alt="Slouch" className="w-11 h-11" />
             <span className="text-xl font-semibold tracking-tight">Slouch</span>
           </a>
           
