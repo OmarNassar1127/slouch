@@ -1,12 +1,45 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
 
-type PostureStatus = 'good' | 'bad' | 'calibrating' | 'no-person'
+type PostureStatus = 'good' | 'bad' | 'warning' | 'calibrating' | 'no-person'
+type Sensitivity = 'easy' | 'medium' | 'hard'
 
 interface PostureMetrics {
-  shoulderAngle: number
-  headTilt: number
-  noseToShoulderY: number
+  shoulderWidth: number      // Distance between shoulders (hunching reduces this)
+  shoulderHipRatio: number   // Vertical alignment of shoulders to hips
+  shoulderAngle: number      // How level the shoulders are
+  noseToShoulderY: number    // Vertical distance nose to shoulder midpoint
+}
+
+// Sensitivity presets: thresholds + time delay before alerting
+const SENSITIVITY_CONFIG = {
+  easy: {
+    shoulderWidthThreshold: 0.08,   // 8% reduction in shoulder width
+    shoulderHipThreshold: 0.06,     // 6% change in shoulder-hip alignment
+    angleThreshold: 6,              // 6 degrees
+    noseThreshold: 0.05,            // 5% nose drop
+    sustainedMs: 5000,              // 5 seconds before alert
+    label: 'Easy',
+    description: 'Generous tolerance, alerts after 5 seconds'
+  },
+  medium: {
+    shoulderWidthThreshold: 0.05,
+    shoulderHipThreshold: 0.04,
+    angleThreshold: 4,
+    noseThreshold: 0.035,
+    sustainedMs: 3000,
+    label: 'Medium',
+    description: 'Balanced sensitivity, alerts after 3 seconds'
+  },
+  hard: {
+    shoulderWidthThreshold: 0.03,
+    shoulderHipThreshold: 0.025,
+    angleThreshold: 2.5,
+    noseThreshold: 0.02,
+    sustainedMs: 2000,
+    label: 'Hard',
+    description: 'Strict posture tracking, alerts after 2 seconds'
+  }
 }
 
 export default function PostureApp() {
@@ -17,12 +50,17 @@ export default function PostureApp() {
   const calibrationRef = useRef<PostureMetrics | null>(null)
   const isRunningRef = useRef(false)
 
-  // Use refs for values needed in animation loop (to avoid stale closures)
+  // Refs for animation loop
   const showSkeletonRef = useRef(true)
   const soundEnabledRef = useRef(true)
   const isCalibratedRef = useRef(false)
+  const sensitivityRef = useRef<Sensitivity>('medium')
   const lastNotificationRef = useRef<number>(0)
   const lastStatusRef = useRef<PostureStatus>('calibrating')
+  
+  // Sustained bad posture tracking
+  const badPostureStartRef = useRef<number | null>(null)
+  const isInBadPostureRef = useRef(false)
 
   const [isLoading, setIsLoading] = useState(true)
   const [cameraActive, setCameraActive] = useState(false)
@@ -32,12 +70,15 @@ export default function PostureApp() {
   const [sessionTime, setSessionTime] = useState(0)
   const [showSkeleton, setShowSkeleton] = useState(true)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [sensitivity, setSensitivity] = useState<Sensitivity>('medium')
   const [debugInfo, setDebugInfo] = useState('')
+  const [warningProgress, setWarningProgress] = useState(0) // 0-100% progress to alert
 
   // Sync state to refs
   useEffect(() => { showSkeletonRef.current = showSkeleton }, [showSkeleton])
   useEffect(() => { soundEnabledRef.current = soundEnabled }, [soundEnabled])
   useEffect(() => { isCalibratedRef.current = isCalibrated }, [isCalibrated])
+  useEffect(() => { sensitivityRef.current = sensitivity }, [sensitivity])
 
   // Play notification sound
   const playNotificationSound = useCallback(() => {
@@ -115,15 +156,29 @@ export default function PostureApp() {
     const nose = landmarks[0]
     const leftShoulder = landmarks[11]
     const rightShoulder = landmarks[12]
-    const leftEar = landmarks[7]
-    const rightEar = landmarks[8]
+    const leftHip = landmarks[23]
+    const rightHip = landmarks[24]
 
-    if (!nose || !leftShoulder || !rightShoulder || !leftEar || !rightEar) {
+    if (!nose || !leftShoulder || !rightShoulder || !leftHip || !rightHip) {
       return null
     }
 
+    // Shoulder width (normalized) - key metric for hunching
+    const shoulderWidth = Math.sqrt(
+      Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
+      Math.pow(rightShoulder.y - leftShoulder.y, 2)
+    )
+
+    // Shoulder midpoint
+    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2
     const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2
-    const earMidY = (leftEar.y + rightEar.y) / 2
+
+    // Hip midpoint
+    const hipMidX = (leftHip.x + rightHip.x) / 2
+    const hipMidY = (leftHip.y + rightHip.y) / 2
+
+    // Shoulder-to-hip vertical ratio (detects forward lean)
+    const shoulderHipRatio = (shoulderMidY - hipMidY)
 
     // Shoulder angle (tilt)
     const shoulderAngle = Math.atan2(
@@ -131,41 +186,40 @@ export default function PostureApp() {
       rightShoulder.x - leftShoulder.x
     ) * (180 / Math.PI)
 
-    // Head position relative to shoulders (normalized)
-    const headTilt = earMidY - shoulderMidY
-    
-    // Nose to shoulder distance (detects forward lean)
+    // Nose to shoulder Y distance
     const noseToShoulderY = nose.y - shoulderMidY
 
     return {
+      shoulderWidth,
+      shoulderHipRatio,
       shoulderAngle: Math.abs(shoulderAngle),
-      headTilt,
       noseToShoulderY
     }
   }
 
-  const analyzePosture = (currentMetrics: PostureMetrics): { status: PostureStatus, debug: string } => {
+  const analyzePosture = (currentMetrics: PostureMetrics): { isBad: boolean, debug: string } => {
     const baseline = calibrationRef.current
-    if (!baseline) return { status: 'calibrating', debug: 'No baseline' }
+    if (!baseline) return { isBad: false, debug: 'No baseline' }
 
-    // Calculate differences
-    const headTiltDiff = currentMetrics.headTilt - baseline.headTilt
+    const config = SENSITIVITY_CONFIG[sensitivityRef.current]
+
+    // Calculate differences (focus on torso metrics)
+    const shoulderWidthDiff = (baseline.shoulderWidth - currentMetrics.shoulderWidth) / baseline.shoulderWidth
+    const shoulderHipDiff = Math.abs(currentMetrics.shoulderHipRatio - baseline.shoulderHipRatio)
+    const angleDiff = Math.abs(currentMetrics.shoulderAngle - baseline.shoulderAngle)
     const noseDiff = currentMetrics.noseToShoulderY - baseline.noseToShoulderY
-    const shoulderAngleDiff = Math.abs(currentMetrics.shoulderAngle - baseline.shoulderAngle)
 
-    // Thresholds (strict - less wiggle room)
-    const HEAD_THRESHOLD = 0.015  // Head dropped
-    const NOSE_THRESHOLD = 0.02   // Leaning forward
-    const ANGLE_THRESHOLD = 2.5   // Uneven shoulders
+    const debug = `Width: ${(shoulderWidthDiff * 100).toFixed(1)}% | Lean: ${(shoulderHipDiff * 100).toFixed(1)}% | Tilt: ${angleDiff.toFixed(1)}°`
 
-    const debug = `Head: ${(headTiltDiff * 100).toFixed(1)} | Nose: ${(noseDiff * 100).toFixed(1)} | Angle: ${shoulderAngleDiff.toFixed(1)}°`
+    // Bad posture = shoulders hunched (width decreased) OR forward lean OR uneven shoulders
+    // We're NOT checking head position as primary metric anymore
+    const isBad = (
+      shoulderWidthDiff > config.shoulderWidthThreshold ||  // Shoulders hunched inward
+      shoulderHipDiff > config.shoulderHipThreshold ||      // Leaning forward
+      angleDiff > config.angleThreshold                      // Uneven shoulders
+    )
 
-    // Slouching = head dropped OR leaning forward OR uneven shoulders
-    if (headTiltDiff > HEAD_THRESHOLD || noseDiff > NOSE_THRESHOLD || shoulderAngleDiff > ANGLE_THRESHOLD) {
-      return { status: 'bad', debug }
-    }
-
-    return { status: 'good', debug }
+    return { isBad, debug }
   }
 
   const detectPose = useCallback(() => {
@@ -193,15 +247,16 @@ export default function PostureApp() {
     const startTimeMs = performance.now()
     const results = poseLandmarkerRef.current.detectForVideo(video, startTimeMs)
 
-    // Draw video frame
+    // Draw video frame (mirrored)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.save()
-    ctx.scale(-1, 1) // Mirror
+    ctx.scale(-1, 1)
     ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height)
     ctx.restore()
 
     let currentStatus: PostureStatus = 'no-person'
     let debugText = 'No person'
+    let progress = 0
 
     if (results.landmarks && results.landmarks.length > 0) {
       const landmarks = results.landmarks[0]
@@ -223,7 +278,7 @@ export default function PostureApp() {
         })
       }
 
-      // Calculate metrics (use original non-mirrored for math)
+      // Calculate metrics
       const metrics = calculatePostureMetrics(landmarks)
       
       if (metrics) {
@@ -232,30 +287,65 @@ export default function PostureApp() {
           debugText = 'Please calibrate'
         } else {
           const result = analyzePosture(metrics)
-          currentStatus = result.status
           debugText = result.debug
+
+          const config = SENSITIVITY_CONFIG[sensitivityRef.current]
+          const now = Date.now()
+
+          if (result.isBad) {
+            // Start or continue tracking bad posture
+            if (badPostureStartRef.current === null) {
+              badPostureStartRef.current = now
+            }
+            
+            const elapsed = now - badPostureStartRef.current
+            progress = Math.min(100, (elapsed / config.sustainedMs) * 100)
+
+            if (elapsed >= config.sustainedMs) {
+              // Sustained bad posture - trigger alert
+              currentStatus = 'bad'
+              if (!isInBadPostureRef.current) {
+                isInBadPostureRef.current = true
+                setSlouches(s => s + 1)
+                playNotificationSound()
+              }
+            } else {
+              // Building up to alert
+              currentStatus = 'warning'
+            }
+          } else {
+            // Good posture - reset tracking
+            badPostureStartRef.current = null
+            isInBadPostureRef.current = false
+            currentStatus = 'good'
+            progress = 0
+          }
         }
       }
     }
 
     // Update state
     setDebugInfo(debugText)
+    setWarningProgress(progress)
     
     if (currentStatus !== lastStatusRef.current) {
-      if (currentStatus === 'bad' && lastStatusRef.current !== 'bad') {
-        setSlouches(s => s + 1)
-        playNotificationSound()
-      }
       lastStatusRef.current = currentStatus
       setPostureStatus(currentStatus)
     }
 
     // Draw border indicator
     const statusColor = currentStatus === 'good' ? '#10b981' : 
-                       currentStatus === 'bad' ? '#ef4444' : '#f59e0b'
+                       currentStatus === 'bad' ? '#ef4444' : 
+                       currentStatus === 'warning' ? '#f59e0b' : '#6b7280'
     ctx.strokeStyle = statusColor
     ctx.lineWidth = 10
     ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10)
+
+    // Draw warning progress bar if in warning state
+    if (currentStatus === 'warning' && progress > 0) {
+      ctx.fillStyle = '#f59e0b'
+      ctx.fillRect(5, canvas.height - 15, (canvas.width - 10) * (progress / 100), 10)
+    }
 
     animationFrameRef.current = requestAnimationFrame(detectPose)
   }, [playNotificationSound])
@@ -295,6 +385,8 @@ export default function PostureApp() {
     calibrationRef.current = null
     setPostureStatus('calibrating')
     lastStatusRef.current = 'calibrating'
+    badPostureStartRef.current = null
+    isInBadPostureRef.current = false
   }
 
   const calibrate = () => {
@@ -310,6 +402,8 @@ export default function PostureApp() {
         isCalibratedRef.current = true
         setPostureStatus('good')
         lastStatusRef.current = 'good'
+        badPostureStartRef.current = null
+        isInBadPostureRef.current = false
         console.log('Calibrated with:', metrics)
       }
     } else {
@@ -324,6 +418,8 @@ export default function PostureApp() {
     setPostureStatus('calibrating')
     lastStatusRef.current = 'calibrating'
     setSlouches(0)
+    badPostureStartRef.current = null
+    isInBadPostureRef.current = false
   }
 
   const formatTime = (seconds: number) => {
@@ -335,6 +431,7 @@ export default function PostureApp() {
   const getStatusMessage = () => {
     switch (postureStatus) {
       case 'good': return 'Great posture! Keep it up!'
+      case 'warning': return 'Posture slipping...'
       case 'bad': return 'Sit up straight!'
       case 'calibrating': return 'Sit with good posture, then click Calibrate'
       case 'no-person': return 'No person detected'
@@ -374,21 +471,64 @@ export default function PostureApp() {
               ? 'bg-emerald-500/20 border-2 border-emerald-500' 
               : postureStatus === 'bad' 
                 ? 'bg-red-500/30 border-2 border-red-500 animate-pulse' 
-                : 'bg-amber-500/20 border-2 border-amber-500/50'
+                : postureStatus === 'warning'
+                  ? 'bg-amber-500/20 border-2 border-amber-500'
+                  : 'bg-slate-500/20 border-2 border-slate-500/50'
           }`}>
             <div className="text-5xl mb-3">
-              {postureStatus === 'good' ? '✅' : postureStatus === 'bad' ? '🚨' : '⏳'}
+              {postureStatus === 'good' ? '✅' : 
+               postureStatus === 'bad' ? '🚨' : 
+               postureStatus === 'warning' ? '⚠️' : '⏳'}
             </div>
             <div className={`text-2xl font-bold ${
               postureStatus === 'good' ? 'text-emerald-400' : 
-              postureStatus === 'bad' ? 'text-red-400' : 'text-amber-400'
+              postureStatus === 'bad' ? 'text-red-400' : 
+              postureStatus === 'warning' ? 'text-amber-400' : 'text-slate-400'
             }`}>
               {getStatusMessage()}
             </div>
+            
+            {/* Warning progress bar */}
+            {postureStatus === 'warning' && (
+              <div className="mt-3 h-2 bg-slate-700 rounded-full overflow-hidden max-w-xs mx-auto">
+                <div 
+                  className="h-full bg-amber-500 transition-all duration-100"
+                  style={{ width: `${warningProgress}%` }}
+                />
+              </div>
+            )}
+            
             {isCalibrated && (
               <div className="text-xs text-slate-500 mt-2 font-mono">{debugInfo}</div>
             )}
           </div>
+
+          {/* Sensitivity Selector */}
+          {cameraActive && (
+            <div className="mb-6 flex justify-center">
+              <div className="inline-flex bg-slate-800 rounded-lg p-1">
+                {(['easy', 'medium', 'hard'] as Sensitivity[]).map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setSensitivity(level)}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition ${
+                      sensitivity === level
+                        ? 'bg-emerald-500 text-white'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {SENSITIVITY_CONFIG[level].label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {cameraActive && (
+            <p className="text-center text-xs text-slate-500 mb-6">
+              {SENSITIVITY_CONFIG[sensitivity].description}
+            </p>
+          )}
 
           {/* Video Container */}
           <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 aspect-video mb-6">
@@ -479,11 +619,11 @@ export default function PostureApp() {
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
               <h3 className="text-emerald-400 font-medium mb-2">🎯 How to Use</h3>
-              <p className="text-sm text-slate-400">1. Sit up straight<br/>2. Click Calibrate<br/>3. Work normally — we'll alert you if you slouch!</p>
+              <p className="text-sm text-slate-400">1. Sit up straight<br/>2. Click Calibrate<br/>3. Work normally — we'll alert if you slouch!</p>
             </div>
             <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-emerald-400 font-medium mb-2">💡 Tips</h3>
-              <p className="text-sm text-slate-400">Good lighting helps. Face the camera directly for best results.</p>
+              <h3 className="text-emerald-400 font-medium mb-2">💡 Smart Detection</h3>
+              <p className="text-sm text-slate-400">Tracks your torso, not head movement. Looking at other screens won't trigger alerts.</p>
             </div>
           </div>
         </div>
