@@ -5,9 +5,9 @@
     <title>Slouch</title>
     <script>
       // Single Page App routing fix for GitHub Pages
-      const segment = '/slouch'; // Change to '' when using custom domain
-      const path = window.location.pathname.replace(segment, '') + window.location.search + window.location.hash;
-      window.location.replace(segment + '/?redirect=' + encodeURIComponent(path));
+      // Keep the full path (including /slouch) so it restores correctly
+      const path = window.location.pathname + window.location.search + window.location.hash;
+      window.location.replace('/slouch/?redirect=' + encodeURIComponent(path));
     </script>
   </head>
   <body>
