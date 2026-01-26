@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { addToWaitlist } from './lib/supabase'
 
 // Modal component
 const LaunchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
@@ -105,9 +106,23 @@ function App() {
     },
   ]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitted(true)
+    setIsSubmitting(true)
+    setSubmitError('')
+
+    const result = await addToWaitlist(email)
+    
+    if (result.success) {
+      setSubmitted(true)
+    } else {
+      setSubmitError(result.error || 'Something went wrong')
+    }
+    
+    setIsSubmitting(false)
   }
 
   return (
@@ -512,13 +527,18 @@ function App() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all"
+                    disabled={isSubmitting}
+                    className="w-full backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all disabled:opacity-50"
                   />
+                  {submitError && (
+                    <p className="text-red-400 text-sm">{submitError}</p>
+                  )}
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    disabled={isSubmitting}
+                    className="w-full bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
                   >
-                    Join the Waitlist →
+                    {isSubmitting ? 'Joining...' : 'Join the Waitlist →'}
                   </button>
                 </form>
               )}
