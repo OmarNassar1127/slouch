@@ -5,22 +5,21 @@ type PostureStatus = 'good' | 'bad' | 'warning' | 'calibrating' | 'no-person'
 type Sensitivity = 'easy' | 'medium' | 'hard'
 
 interface PostureMetrics {
-  shoulderWidth: number      // Distance between shoulders (hunching reduces this)
-  shoulderHipRatio: number   // Vertical alignment of shoulders to hips
-  shoulderAngle: number      // How level the shoulders are
-  noseToShoulderY: number    // Vertical distance nose to shoulder midpoint
+  shoulderWidth: number
+  shoulderHipRatio: number
+  shoulderAngle: number
+  noseToShoulderY: number
 }
 
-// Sensitivity presets: thresholds + time delay before alerting
 const SENSITIVITY_CONFIG = {
   easy: {
-    shoulderWidthThreshold: 0.08,   // 8% reduction in shoulder width
-    shoulderHipThreshold: 0.06,     // 6% change in shoulder-hip alignment
-    angleThreshold: 6,              // 6 degrees
-    noseThreshold: 0.05,            // 5% nose drop
-    sustainedMs: 5000,              // 5 seconds before alert
-    label: 'Easy',
-    description: 'Generous tolerance, alerts after 5 seconds'
+    shoulderWidthThreshold: 0.08,
+    shoulderHipThreshold: 0.06,
+    angleThreshold: 6,
+    noseThreshold: 0.05,
+    sustainedMs: 5000,
+    label: 'Relaxed',
+    description: '5 second grace period'
   },
   medium: {
     shoulderWidthThreshold: 0.05,
@@ -28,8 +27,8 @@ const SENSITIVITY_CONFIG = {
     angleThreshold: 4,
     noseThreshold: 0.035,
     sustainedMs: 3000,
-    label: 'Medium',
-    description: 'Balanced sensitivity, alerts after 3 seconds'
+    label: 'Balanced',
+    description: '3 second grace period'
   },
   hard: {
     shoulderWidthThreshold: 0.03,
@@ -37,8 +36,8 @@ const SENSITIVITY_CONFIG = {
     angleThreshold: 2.5,
     noseThreshold: 0.02,
     sustainedMs: 2000,
-    label: 'Hard',
-    description: 'Strict posture tracking, alerts after 2 seconds'
+    label: 'Strict',
+    description: '2 second grace period'
   }
 }
 
@@ -50,7 +49,6 @@ export default function PostureApp() {
   const calibrationRef = useRef<PostureMetrics | null>(null)
   const isRunningRef = useRef(false)
 
-  // Refs for animation loop
   const showSkeletonRef = useRef(true)
   const soundEnabledRef = useRef(true)
   const isCalibratedRef = useRef(false)
@@ -58,7 +56,6 @@ export default function PostureApp() {
   const lastNotificationRef = useRef<number>(0)
   const lastStatusRef = useRef<PostureStatus>('calibrating')
   
-  // Sustained bad posture tracking
   const badPostureStartRef = useRef<number | null>(null)
   const isInBadPostureRef = useRef(false)
 
@@ -72,15 +69,13 @@ export default function PostureApp() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [sensitivity, setSensitivity] = useState<Sensitivity>('medium')
   const [debugInfo, setDebugInfo] = useState('')
-  const [warningProgress, setWarningProgress] = useState(0) // 0-100% progress to alert
+  const [warningProgress, setWarningProgress] = useState(0)
 
-  // Sync state to refs
   useEffect(() => { showSkeletonRef.current = showSkeleton }, [showSkeleton])
   useEffect(() => { soundEnabledRef.current = soundEnabled }, [soundEnabled])
   useEffect(() => { isCalibratedRef.current = isCalibrated }, [isCalibrated])
   useEffect(() => { sensitivityRef.current = sensitivity }, [sensitivity])
 
-  // Play notification sound
   const playNotificationSound = useCallback(() => {
     if (!soundEnabledRef.current) return
     
@@ -96,20 +91,19 @@ export default function PostureApp() {
       oscillator.connect(gainNode)
       gainNode.connect(audioContext.destination)
       
-      oscillator.frequency.value = 440
+      oscillator.frequency.value = 520
       oscillator.type = 'sine'
       
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+      gainNode.gain.setValueAtTime(0.2, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3)
       
       oscillator.start(audioContext.currentTime)
-      oscillator.stop(audioContext.currentTime + 0.5)
+      oscillator.stop(audioContext.currentTime + 0.3)
     } catch (e) {
       console.log('Audio not available')
     }
   }, [])
 
-  // Initialize MediaPipe
   useEffect(() => {
     async function initPoseLandmarker() {
       try {
@@ -143,7 +137,6 @@ export default function PostureApp() {
     }
   }, [])
 
-  // Session timer
   useEffect(() => {
     if (!cameraActive) return
     const interval = setInterval(() => {
@@ -163,30 +156,21 @@ export default function PostureApp() {
       return null
     }
 
-    // Shoulder width (normalized) - key metric for hunching
     const shoulderWidth = Math.sqrt(
       Math.pow(rightShoulder.x - leftShoulder.x, 2) + 
       Math.pow(rightShoulder.y - leftShoulder.y, 2)
     )
 
-    // Shoulder midpoint
-    const shoulderMidX = (leftShoulder.x + rightShoulder.x) / 2
     const shoulderMidY = (leftShoulder.y + rightShoulder.y) / 2
-
-    // Hip midpoint
-    const hipMidX = (leftHip.x + rightHip.x) / 2
     const hipMidY = (leftHip.y + rightHip.y) / 2
 
-    // Shoulder-to-hip vertical ratio (detects forward lean)
     const shoulderHipRatio = (shoulderMidY - hipMidY)
 
-    // Shoulder angle (tilt)
     const shoulderAngle = Math.atan2(
       rightShoulder.y - leftShoulder.y,
       rightShoulder.x - leftShoulder.x
     ) * (180 / Math.PI)
 
-    // Nose to shoulder Y distance
     const noseToShoulderY = nose.y - shoulderMidY
 
     return {
@@ -203,20 +187,16 @@ export default function PostureApp() {
 
     const config = SENSITIVITY_CONFIG[sensitivityRef.current]
 
-    // Calculate differences (focus on torso metrics)
     const shoulderWidthDiff = (baseline.shoulderWidth - currentMetrics.shoulderWidth) / baseline.shoulderWidth
     const shoulderHipDiff = Math.abs(currentMetrics.shoulderHipRatio - baseline.shoulderHipRatio)
     const angleDiff = Math.abs(currentMetrics.shoulderAngle - baseline.shoulderAngle)
-    const noseDiff = currentMetrics.noseToShoulderY - baseline.noseToShoulderY
 
-    const debug = `Width: ${(shoulderWidthDiff * 100).toFixed(1)}% | Lean: ${(shoulderHipDiff * 100).toFixed(1)}% | Tilt: ${angleDiff.toFixed(1)}°`
+    const debug = `W: ${(shoulderWidthDiff * 100).toFixed(1)}% | L: ${(shoulderHipDiff * 100).toFixed(1)}% | T: ${angleDiff.toFixed(1)}°`
 
-    // Bad posture = shoulders hunched (width decreased) OR forward lean OR uneven shoulders
-    // We're NOT checking head position as primary metric anymore
     const isBad = (
-      shoulderWidthDiff > config.shoulderWidthThreshold ||  // Shoulders hunched inward
-      shoulderHipDiff > config.shoulderHipThreshold ||      // Leaning forward
-      angleDiff > config.angleThreshold                      // Uneven shoulders
+      shoulderWidthDiff > config.shoulderWidthThreshold ||
+      shoulderHipDiff > config.shoulderHipThreshold ||
+      angleDiff > config.angleThreshold
     )
 
     return { isBad, debug }
@@ -247,7 +227,6 @@ export default function PostureApp() {
     const startTimeMs = performance.now()
     const results = poseLandmarkerRef.current.detectForVideo(video, startTimeMs)
 
-    // Draw video frame (mirrored)
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.save()
     ctx.scale(-1, 1)
@@ -260,31 +239,27 @@ export default function PostureApp() {
 
     if (results.landmarks && results.landmarks.length > 0) {
       const landmarks = results.landmarks[0]
-
-      // Mirror landmarks for drawing
       const mirroredLandmarks = landmarks.map(l => ({ ...l, x: 1 - l.x }))
 
-      // Draw skeleton
       if (showSkeletonRef.current) {
         const drawingUtils = new DrawingUtils(ctx)
         drawingUtils.drawLandmarks(mirroredLandmarks, {
-          radius: 4,
-          color: '#10b981',
-          fillColor: '#10b98180'
+          radius: 3,
+          color: '#06b6d4',
+          fillColor: '#06b6d450'
         })
         drawingUtils.drawConnectors(mirroredLandmarks, PoseLandmarker.POSE_CONNECTIONS, {
-          color: '#10b98150',
+          color: '#06b6d430',
           lineWidth: 2
         })
       }
 
-      // Calculate metrics
       const metrics = calculatePostureMetrics(landmarks)
       
       if (metrics) {
         if (!isCalibratedRef.current) {
           currentStatus = 'calibrating'
-          debugText = 'Please calibrate'
+          debugText = 'Awaiting calibration'
         } else {
           const result = analyzePosture(metrics)
           debugText = result.debug
@@ -293,7 +268,6 @@ export default function PostureApp() {
           const now = Date.now()
 
           if (result.isBad) {
-            // Start or continue tracking bad posture
             if (badPostureStartRef.current === null) {
               badPostureStartRef.current = now
             }
@@ -302,7 +276,6 @@ export default function PostureApp() {
             progress = Math.min(100, (elapsed / config.sustainedMs) * 100)
 
             if (elapsed >= config.sustainedMs) {
-              // Sustained bad posture - trigger alert
               currentStatus = 'bad'
               if (!isInBadPostureRef.current) {
                 isInBadPostureRef.current = true
@@ -310,11 +283,9 @@ export default function PostureApp() {
                 playNotificationSound()
               }
             } else {
-              // Building up to alert
               currentStatus = 'warning'
             }
           } else {
-            // Good posture - reset tracking
             badPostureStartRef.current = null
             isInBadPostureRef.current = false
             currentStatus = 'good'
@@ -324,27 +295,12 @@ export default function PostureApp() {
       }
     }
 
-    // Update state
     setDebugInfo(debugText)
     setWarningProgress(progress)
     
     if (currentStatus !== lastStatusRef.current) {
       lastStatusRef.current = currentStatus
       setPostureStatus(currentStatus)
-    }
-
-    // Draw border indicator
-    const statusColor = currentStatus === 'good' ? '#10b981' : 
-                       currentStatus === 'bad' ? '#ef4444' : 
-                       currentStatus === 'warning' ? '#f59e0b' : '#6b7280'
-    ctx.strokeStyle = statusColor
-    ctx.lineWidth = 10
-    ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10)
-
-    // Draw warning progress bar if in warning state
-    if (currentStatus === 'warning' && progress > 0) {
-      ctx.fillStyle = '#f59e0b'
-      ctx.fillRect(5, canvas.height - 15, (canvas.width - 10) * (progress / 100), 10)
     }
 
     animationFrameRef.current = requestAnimationFrame(detectPose)
@@ -404,7 +360,6 @@ export default function PostureApp() {
         lastStatusRef.current = 'good'
         badPostureStartRef.current = null
         isInBadPostureRef.current = false
-        console.log('Calibrated with:', metrics)
       }
     } else {
       alert('Could not detect your pose. Make sure you are visible in the camera.')
@@ -428,204 +383,276 @@ export default function PostureApp() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const getStatusMessage = () => {
+  const getStatusConfig = () => {
     switch (postureStatus) {
-      case 'good': return 'Great posture! Keep it up!'
-      case 'warning': return 'Posture slipping...'
-      case 'bad': return 'Sit up straight!'
-      case 'calibrating': return 'Sit with good posture, then click Calibrate'
-      case 'no-person': return 'No person detected'
+      case 'good': return { 
+        icon: '✓', 
+        text: 'Perfect Posture', 
+        gradient: 'from-emerald-400 to-cyan-400',
+        bg: 'bg-emerald-500/10',
+        border: 'border-emerald-500/30',
+        glow: 'shadow-emerald-500/20'
+      }
+      case 'warning': return { 
+        icon: '!', 
+        text: 'Correcting...', 
+        gradient: 'from-amber-400 to-orange-400',
+        bg: 'bg-amber-500/10',
+        border: 'border-amber-500/30',
+        glow: 'shadow-amber-500/20'
+      }
+      case 'bad': return { 
+        icon: '↑', 
+        text: 'Sit Up Straight', 
+        gradient: 'from-red-400 to-pink-400',
+        bg: 'bg-red-500/10',
+        border: 'border-red-500/30',
+        glow: 'shadow-red-500/20'
+      }
+      case 'calibrating': return { 
+        icon: '◎', 
+        text: 'Ready to Calibrate', 
+        gradient: 'from-slate-400 to-slate-300',
+        bg: 'bg-slate-500/10',
+        border: 'border-slate-500/30',
+        glow: 'shadow-slate-500/20'
+      }
+      default: return { 
+        icon: '?', 
+        text: 'No Person Detected', 
+        gradient: 'from-slate-400 to-slate-300',
+        bg: 'bg-slate-500/10',
+        border: 'border-slate-500/30',
+        glow: 'shadow-slate-500/20'
+      }
     }
   }
 
+  const status = getStatusConfig()
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      {/* Full screen red overlay when slouching */}
+    <div className="min-h-screen bg-[#0a0a0f] text-white overflow-hidden">
+      {/* Animated background gradient */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+      </div>
+
+      {/* Red overlay when slouching */}
       {postureStatus === 'bad' && isCalibrated && (
-        <div className="fixed inset-0 bg-red-500/20 pointer-events-none z-40 animate-pulse" />
+        <div className="fixed inset-0 bg-red-500/10 pointer-events-none z-40 animate-pulse" />
       )}
 
-      {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm relative z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <a href="/" className="flex items-center space-x-2">
-            <img src="/slouch-logo.png" alt="Slouch" className="w-8 h-8" />
-            <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-              Slouch
-            </span>
+      {/* Glass Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/5 border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:shadow-emerald-500/40 transition-shadow">
+              <img src="/slouch-logo.png" alt="Slouch" className="w-6 h-6" />
+            </div>
+            <span className="text-xl font-semibold tracking-tight">Slouch</span>
           </a>
-          <div className="flex items-center gap-4 text-sm text-slate-400">
-            <span>⏱️ {formatTime(sessionTime)}</span>
-            <span>🔔 {slouches} nudges</span>
-          </div>
+          
+          {cameraActive && (
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-sm text-white/60">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-mono">{formatTime(sessionTime)}</span>
+              </div>
+              <div className="relative group">
+                <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm cursor-help">
+                  <span className="text-white/40">Nudges</span>
+                  <span className="ml-2 font-semibold">{slouches}</span>
+                </div>
+                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-xs text-white/70 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  Times you were reminded to sit up straight
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 relative z-10">
-        <div className="max-w-4xl mx-auto">
+      <main className="relative z-10 pt-24 pb-12 px-6">
+        <div className="max-w-5xl mx-auto">
           
-          {/* Status Banner */}
-          <div className={`mb-6 p-6 rounded-xl text-center transition-all ${
-            postureStatus === 'good' 
-              ? 'bg-emerald-500/20 border-2 border-emerald-500' 
-              : postureStatus === 'bad' 
-                ? 'bg-red-500/30 border-2 border-red-500 animate-pulse' 
-                : postureStatus === 'warning'
-                  ? 'bg-amber-500/20 border-2 border-amber-500'
-                  : 'bg-slate-500/20 border-2 border-slate-500/50'
-          }`}>
-            <div className="text-5xl mb-3">
-              {postureStatus === 'good' ? '✅' : 
-               postureStatus === 'bad' ? '🚨' : 
-               postureStatus === 'warning' ? '⚠️' : '⏳'}
-            </div>
-            <div className={`text-2xl font-bold ${
-              postureStatus === 'good' ? 'text-emerald-400' : 
-              postureStatus === 'bad' ? 'text-red-400' : 
-              postureStatus === 'warning' ? 'text-amber-400' : 'text-slate-400'
-            }`}>
-              {getStatusMessage()}
+          {/* Status Card */}
+          <div className={`mb-8 p-8 rounded-3xl backdrop-blur-xl ${status.bg} border ${status.border} shadow-2xl ${status.glow} transition-all duration-500`}>
+            <div className="flex items-center justify-center gap-4">
+              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${status.gradient} flex items-center justify-center text-2xl font-bold shadow-lg`}>
+                {status.icon}
+              </div>
+              <div>
+                <h2 className={`text-3xl font-bold bg-gradient-to-r ${status.gradient} bg-clip-text text-transparent`}>
+                  {status.text}
+                </h2>
+                {isCalibrated && (
+                  <p className="text-sm text-white/40 font-mono mt-1">{debugInfo}</p>
+                )}
+              </div>
             </div>
             
-            {/* Warning progress bar */}
+            {/* Warning progress */}
             {postureStatus === 'warning' && (
-              <div className="mt-3 h-2 bg-slate-700 rounded-full overflow-hidden max-w-xs mx-auto">
+              <div className="mt-6 h-1.5 bg-white/10 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-amber-500 transition-all duration-100"
+                  className="h-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-100 rounded-full"
                   style={{ width: `${warningProgress}%` }}
                 />
               </div>
             )}
-            
-            {isCalibrated && (
-              <div className="text-xs text-slate-500 mt-2 font-mono">{debugInfo}</div>
-            )}
           </div>
 
-          {/* Sensitivity Selector */}
-          {cameraActive && (
-            <div className="mb-6 flex justify-center">
-              <div className="inline-flex bg-slate-800 rounded-lg p-1">
-                {(['easy', 'medium', 'hard'] as Sensitivity[]).map((level) => (
-                  <button
-                    key={level}
-                    onClick={() => setSensitivity(level)}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                      sensitivity === level
-                        ? 'bg-emerald-500 text-white'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    {SENSITIVITY_CONFIG[level].label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {cameraActive && (
-            <p className="text-center text-xs text-slate-500 mb-6">
-              {SENSITIVITY_CONFIG[sensitivity].description}
-            </p>
-          )}
-
-          {/* Video Container */}
-          <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 aspect-video mb-6">
-            {isLoading ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-slate-400">Loading AI model...</p>
-                </div>
-              </div>
-            ) : !cameraActive ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-10 h-10 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
+          {/* Video Section */}
+          <div className="relative">
+            {/* Glass video container */}
+            <div className="relative rounded-3xl overflow-hidden backdrop-blur-xl bg-white/5 border border-white/10 shadow-2xl">
+              <div className="aspect-video relative">
+                {isLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                        <svg className="w-8 h-8 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                      </div>
+                      <p className="text-white/60">Loading AI Model...</p>
+                    </div>
                   </div>
-                  <p className="text-slate-400 mb-4">Camera access required for posture detection</p>
-                  <button
-                    onClick={startCamera}
-                    className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg font-medium hover:opacity-90 transition"
-                  >
-                    Enable Camera
-                  </button>
-                </div>
+                ) : !cameraActive ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center max-w-sm">
+                      <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-emerald-400/20 to-cyan-400/20 border border-white/10 flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-semibold mb-2">Enable Camera</h3>
+                      <p className="text-white/40 mb-6 text-sm">Your video never leaves this device. All AI processing happens locally in your browser.</p>
+                      <button
+                        onClick={startCamera}
+                        className="px-8 py-4 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-2xl font-semibold text-black hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
+                      >
+                        Start Session
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+                
+                <video ref={videoRef} className="hidden" playsInline muted />
+                <canvas
+                  ref={canvasRef}
+                  className={`w-full h-full object-cover ${!cameraActive ? 'hidden' : ''}`}
+                />
               </div>
-            ) : null}
-            
-            <video ref={videoRef} className="hidden" playsInline muted />
-            <canvas
-              ref={canvasRef}
-              className={`w-full h-full object-contain ${!cameraActive ? 'hidden' : ''}`}
-            />
+
+              {/* Floating controls overlay */}
+              {cameraActive && (
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                  <div className="flex items-center justify-between">
+                    {/* Left: Calibration */}
+                    <div>
+                      {!isCalibrated ? (
+                        <button
+                          onClick={calibrate}
+                          className="px-6 py-3 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-xl font-semibold text-black hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
+                        >
+                          Calibrate Posture
+                        </button>
+                      ) : (
+                        <button
+                          onClick={recalibrate}
+                          className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-sm transition-all"
+                        >
+                          Recalibrate
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Center: Sensitivity */}
+                    <div className="flex items-center gap-1 p-1 rounded-xl bg-white/10 border border-white/10">
+                      {(['easy', 'medium', 'hard'] as Sensitivity[]).map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => setSensitivity(level)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            sensitivity === level
+                              ? 'bg-gradient-to-r from-emerald-400 to-cyan-400 text-black'
+                              : 'text-white/60 hover:text-white'
+                          }`}
+                        >
+                          {SENSITIVITY_CONFIG[level].label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Right: Quick toggles */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowSkeleton(!showSkeleton)}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                          showSkeleton ? 'bg-cyan-400/20 text-cyan-400 border border-cyan-400/30' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'
+                        }`}
+                        title="Toggle skeleton"
+                      >
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </button>
+                      
+                      <button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                          soundEnabled ? 'bg-emerald-400/20 text-emerald-400 border border-emerald-400/30' : 'bg-white/10 text-white/40 border border-white/10 hover:text-white'
+                        }`}
+                        title="Toggle sound"
+                      >
+                        {soundEnabled ? (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M12 6v12l-4-4H4V10h4l4-4z" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                          </svg>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={stopCamera}
+                        className="w-10 h-10 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center hover:bg-red-500/30 transition-all"
+                        title="Stop session"
+                      >
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <rect x="6" y="6" width="12" height="12" rx="2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Controls */}
-          {cameraActive && (
-            <div className="flex flex-wrap gap-3 justify-center mb-8">
-              {!isCalibrated ? (
-                <button
-                  onClick={calibrate}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-lg font-bold text-lg hover:opacity-90 transition animate-pulse"
-                >
-                  🎯 Calibrate Good Posture
-                </button>
-              ) : (
-                <button
-                  onClick={recalibrate}
-                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-lg font-medium transition"
-                >
-                  🔄 Recalibrate
-                </button>
-              )}
-
-              <button
-                onClick={() => setShowSkeleton(!showSkeleton)}
-                className={`px-6 py-3 rounded-lg font-medium transition ${
-                  showSkeleton ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                🦴 {showSkeleton ? 'Skeleton On' : 'Skeleton Off'}
-              </button>
-
-              <button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`px-6 py-3 rounded-lg font-medium transition ${
-                  soundEnabled ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-slate-700 hover:bg-slate-600'
-                }`}
-              >
-                {soundEnabled ? '🔔 Sound On' : '🔕 Sound Off'}
-              </button>
-
-              <button
-                onClick={stopCamera}
-                className="px-6 py-3 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg font-medium transition"
-              >
-                ⏹️ Stop
-              </button>
+          {/* Feature cards */}
+          {!cameraActive && (
+            <div className="mt-12 grid md:grid-cols-3 gap-4">
+              {[
+                { icon: '🔒', title: '100% Private', desc: 'All AI runs locally in your browser. Your video never leaves your device.' },
+                { icon: '🎯', title: 'Smart Detection', desc: 'Tracks your torso alignment, not head movement. Look at other screens freely.' },
+                { icon: '⚡', title: 'Real-time Feedback', desc: 'Get gentle nudges when you slouch, with adjustable sensitivity levels.' },
+              ].map((feature, i) => (
+                <div key={i} className="p-6 rounded-2xl backdrop-blur-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
+                  <div className="text-3xl mb-3">{feature.icon}</div>
+                  <h3 className="font-semibold mb-2 group-hover:text-emerald-400 transition-colors">{feature.title}</h3>
+                  <p className="text-sm text-white/40">{feature.desc}</p>
+                </div>
+              ))}
             </div>
           )}
-
-          {/* Info Cards */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-emerald-400 font-medium mb-2">🔒 100% Private</h3>
-              <p className="text-sm text-slate-400">All AI runs in your browser. No video ever leaves your device.</p>
-            </div>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-emerald-400 font-medium mb-2">🎯 How to Use</h3>
-              <p className="text-sm text-slate-400">1. Sit up straight<br/>2. Click Calibrate<br/>3. Work normally — we'll alert if you slouch!</p>
-            </div>
-            <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
-              <h3 className="text-emerald-400 font-medium mb-2">💡 Smart Detection</h3>
-              <p className="text-sm text-slate-400">Tracks your torso, not head movement. Looking at other screens won't trigger alerts.</p>
-            </div>
-          </div>
         </div>
       </main>
     </div>
