@@ -153,10 +153,10 @@ export default function PostureApp() {
     const noseDiff = currentMetrics.noseToShoulderY - baseline.noseToShoulderY
     const shoulderAngleDiff = Math.abs(currentMetrics.shoulderAngle - baseline.shoulderAngle)
 
-    // Thresholds (more sensitive)
-    const HEAD_THRESHOLD = 0.03  // Head dropped
-    const NOSE_THRESHOLD = 0.04 // Leaning forward
-    const ANGLE_THRESHOLD = 4   // Uneven shoulders
+    // Thresholds (strict - less wiggle room)
+    const HEAD_THRESHOLD = 0.015  // Head dropped
+    const NOSE_THRESHOLD = 0.02   // Leaning forward
+    const ANGLE_THRESHOLD = 2.5   // Uneven shoulders
 
     const debug = `Head: ${(headTiltDiff * 100).toFixed(1)} | Nose: ${(noseDiff * 100).toFixed(1)} | Angle: ${shoulderAngleDiff.toFixed(1)}°`
 
