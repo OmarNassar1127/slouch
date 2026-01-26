@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from '@mediapipe/tasks-vision'
+import { useAuth } from '../context/AuthContext'
 
 type PostureStatus = 'good' | 'bad' | 'warning' | 'calibrating' | 'no-person'
 type Sensitivity = 'easy' | 'medium' | 'hard'
@@ -42,6 +44,9 @@ const SENSITIVITY_CONFIG = {
 }
 
 export default function PostureApp() {
+  const { user, signOut } = useAuth()
+  const navigate = useNavigate()
+  
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const poseLandmarkerRef = useRef<PoseLandmarker | null>(null)
@@ -453,23 +458,55 @@ export default function PostureApp() {
             <span className="text-xl font-semibold tracking-tight">Slouch</span>
           </a>
           
-          {cameraActive && (
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-sm text-white/60">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-mono">{formatTime(sessionTime)}</span>
-              </div>
-              <div className="relative group">
-                <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm cursor-help">
-                  <span className="text-white/40">Nudges</span>
-                  <span className="ml-2 font-semibold">{slouches}</span>
+          <div className="flex items-center gap-6">
+            {cameraActive && (
+              <>
+                <div className="flex items-center gap-2 text-sm text-white/60">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-mono">{formatTime(sessionTime)}</span>
                 </div>
-                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-xs text-white/70 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                  Times you were reminded to sit up straight
+                <div className="relative group">
+                  <div className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm cursor-help">
+                    <span className="text-white/40">Nudges</span>
+                    <span className="ml-2 font-semibold">{slouches}</span>
+                  </div>
+                  <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-xs text-white/70 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                    Times you were reminded to sit up straight
+                  </div>
                 </div>
+              </>
+            )}
+            
+            {/* User menu */}
+            <div className="relative group">
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm hover:bg-white/10 transition-all">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-xs font-bold text-black">
+                  {user?.email?.[0].toUpperCase() || '?'}
+                </div>
+                <svg className="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute top-full right-0 mt-2 w-48 py-2 bg-slate-800 border border-white/10 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl">
+                <div className="px-4 py-2 border-b border-white/10">
+                  <div className="text-xs text-white/40">Signed in as</div>
+                  <div className="text-sm text-white truncate">{user?.email}</div>
+                </div>
+                <button
+                  onClick={async () => {
+                    await signOut()
+                    navigate('/')
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Sign out
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </header>
 

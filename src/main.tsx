@@ -5,7 +5,10 @@ import './index.css'
 import App from './App.tsx'
 import Privacy from './pages/Privacy.tsx'
 import Terms from './pages/Terms.tsx'
+import Login from './pages/Login.tsx'
 import PostureApp from './pages/PostureApp.tsx'
+import { AuthProvider } from './context/AuthContext.tsx'
+import ProtectedRoute from './components/ProtectedRoute.tsx'
 
 // Use /slouch/ as basename for GitHub Pages, / for local dev
 const basename = import.meta.env.BASE_URL
@@ -13,12 +16,19 @@ const basename = import.meta.env.BASE_URL
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={basename}>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/app" element={<PostureApp />} />
-        <Route path="/privacy" element={<Privacy />} />
-        <Route path="/terms" element={<Terms />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/app" element={
+            <ProtectedRoute>
+              <PostureApp />
+            </ProtectedRoute>
+          } />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
 )
