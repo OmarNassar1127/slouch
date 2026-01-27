@@ -5,9 +5,8 @@
     <title>Slouch</title>
     <script>
       // Single Page App routing fix for GitHub Pages
-      // Keep the full path (including /slouch) so it restores correctly
       const path = window.location.pathname + window.location.search + window.location.hash;
-      window.location.replace('/slouch/?redirect=' + encodeURIComponent(path));
+      window.location.replace('/?redirect=' + encodeURIComponent(path));
     </script>
   </head>
   <body>

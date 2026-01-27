@@ -10,7 +10,7 @@ import PostureApp from './pages/PostureApp.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
 import ProtectedRoute from './components/ProtectedRoute.tsx'
 
-// Use /slouch/ as basename for GitHub Pages, / for local dev
+// BASE_URL is / for custom domain (slouch.pro)
 const basename = import.meta.env.BASE_URL
 
 createRoot(document.getElementById('root')!).render(
