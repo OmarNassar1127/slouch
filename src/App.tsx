@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { addToWaitlist } from './lib/supabase'
 
 // FAQ Item component with collapse animation
 const FaqItem = ({ question, answer, isOpen, onClick }: { 
@@ -42,8 +41,6 @@ const Logo = ({ className = "w-10 h-10" }: { className?: string }) => (
 )
 
 function App() {
-  const [email, setEmail] = useState('')
-  const [submitted, setSubmitted] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const faqItems = [
     { 
@@ -67,28 +64,6 @@ function App() {
       a: 'Most users report noticeable improvement in 1-2 weeks. The key is consistency — even 30 minutes of monitored work per day builds lasting muscle memory.' 
     },
   ]
-
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
-  const [honeypot, setHoneypot] = useState('')
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
-    setSubmitError('')
-
-    const result = await addToWaitlist(email, honeypot)
-    
-    if (result.success) {
-      setSubmitted(true)
-    } else if (result.error === 'already_exists') {
-      setSubmitError('Oops! This email is already on the list 🎉')
-    } else {
-      setSubmitError(result.error || 'Something went wrong')
-    }
-    
-    setIsSubmitting(false)
-  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white antialiased overflow-x-hidden">
@@ -348,7 +323,7 @@ function App() {
               </thead>
               <tbody className="text-sm">
                 {[
-                  ['Price', 'From $4/mo', '$79 one-time'],
+                  ['Price', 'Free', '$79 one-time'],
                   ['Hardware needed', 'None', 'Wearable device'],
                   ['Setup time', '10 seconds', '5+ minutes'],
                   ['Can lose/forget it', 'No', 'Yes'],
@@ -368,8 +343,8 @@ function App() {
         </div>
       </section>
 
-      {/* Waitlist */}
-      <section id="waitlist" className="py-24 px-6">
+      {/* CTA */}
+      <section className="py-24 px-6">
         <div className="max-w-xl mx-auto">
           <div className="relative">
             <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 blur-2xl rounded-3xl"></div>
@@ -378,60 +353,20 @@ function App() {
                 <Logo className="w-10 h-10" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold mb-4 tracking-tight">
-                Get early access
+                Ready to fix your posture?
               </h2>
               <p className="text-white/50 mb-8">
-                Be first in line. Early members get 50% off Pro forever.
+                100% free. No account needed. Just open the app and start sitting better.
               </p>
-
-              {submitted ? (
-                <div className="backdrop-blur-sm bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6">
-                  <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <h3 className="font-semibold text-lg mb-2">You're on the list!</h3>
-                  <p className="text-white/50 text-sm">We'll email you when Slouch is ready.</p>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Honeypot field - hidden from humans, bots will fill it */}
-                  <input
-                    type="text"
-                    name="website"
-                    value={honeypot}
-                    onChange={(e) => setHoneypot(e.target.value)}
-                    autoComplete="off"
-                    tabIndex={-1}
-                    className="absolute opacity-0 h-0 w-0 pointer-events-none"
-                    aria-hidden="true"
-                  />
-                  <input
-                    type="email"
-                    placeholder="you@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={isSubmitting}
-                    className="w-full backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all disabled:opacity-50"
-                  />
-                  {submitError && (
-                    <p className={`text-sm ${submitError.includes('already') ? 'text-emerald-400' : 'text-red-400'}`}>{submitError}</p>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold px-6 py-4 rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
-                  >
-                    {isSubmitting ? 'Joining...' : 'Join the Waitlist →'}
-                  </button>
-                </form>
-              )}
-
-              <p className="text-white/30 text-xs mt-6">
-                No spam, ever. Unsubscribe anytime.
-              </p>
+              <Link
+                to="/app"
+                className="inline-flex items-center justify-center gap-2 w-full py-4 bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold rounded-xl hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Launch App
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
           </div>
         </div>
