@@ -8,7 +8,6 @@ import Terms from './pages/Terms.tsx'
 import Login from './pages/Login.tsx'
 import PostureApp from './pages/PostureApp.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
-import ProtectedRoute from './components/ProtectedRoute.tsx'
 
 // BASE_URL is / for custom domain (slouch.pro)
 const basename = import.meta.env.BASE_URL
