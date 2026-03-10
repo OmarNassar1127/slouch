@@ -20,11 +20,7 @@ createRoot(document.getElementById('root')!).render(
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/app" element={
-            <ProtectedRoute>
-              <PostureApp />
-            </ProtectedRoute>
-          } />
+          <Route path="/app" element={<PostureApp />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
         </Routes>

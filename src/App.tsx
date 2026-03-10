@@ -2,42 +2,6 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { addToWaitlist } from './lib/supabase'
 
-// Modal component
-const LaunchModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
-  if (!isOpen) return null
-  
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 max-w-md w-full shadow-2xl">
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-all"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-        
-        <div className="text-center">
-          <div className="text-5xl mb-4">🚀</div>
-          <h3 className="text-2xl font-bold mb-3">Coming Soon!</h3>
-          <p className="text-white/60 mb-6">
-            Slouch is not available yet. Sign up for early access and be the first to know when we launch.
-          </p>
-          <a 
-            href="#waitlist"
-            onClick={onClose}
-            className="block w-full py-3 bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold rounded-xl text-center hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
-          >
-            Join the Waitlist
-          </a>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // FAQ Item component with collapse animation
 const FaqItem = ({ question, answer, isOpen, onClick }: { 
   question: string; 
@@ -81,8 +45,6 @@ function App() {
   const [email, setEmail] = useState('')
   const [submitted, setSubmitted] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [showLaunchModal, setShowLaunchModal] = useState(false)
-
   const faqItems = [
     { 
       q: 'Is my webcam footage stored or sent anywhere?', 
@@ -146,13 +108,12 @@ function App() {
           </a>
           <div className="flex items-center gap-8">
             <a href="#features" className="text-sm text-white hover:text-emerald-400 transition-colors hidden sm:block">Features</a>
-            <a href="#pricing" className="text-sm text-white hover:text-emerald-400 transition-colors hidden sm:block">Pricing</a>
-            <button 
-              onClick={() => setShowLaunchModal(true)}
+            <Link
+              to="/app"
               className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold text-sm hover:shadow-lg hover:shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
             >
               Launch App
-            </button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -183,15 +144,15 @@ function App() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <button 
-                  onClick={() => setShowLaunchModal(true)}
+                <Link
+                  to="/app"
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold text-base hover:shadow-xl hover:shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
                 >
                   Launch App
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </button>
+                </Link>
                 <a 
                   href="#how-it-works"
                   className="inline-flex items-center justify-center gap-2 text-white/60 hover:text-white font-medium px-6 py-4 transition-colors"
@@ -407,95 +368,6 @@ function App() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="py-24 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">
-              Simple, transparent pricing
-            </h2>
-            <p className="text-white/50 text-lg">
-              Early access members lock in 50% off forever.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {/* Pro */}
-            <div className="relative backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8 hover:bg-white/10 transition-all">
-              <div className="text-emerald-400 font-medium mb-2">Pro</div>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">$4</span>
-                <span className="text-white/30 line-through text-lg">$8</span>
-                <span className="text-white/30">/month</span>
-              </div>
-              <p className="text-white/40 text-sm mb-6">Perfect for individuals</p>
-              <ul className="space-y-4 mb-8">
-                {[
-                  'Unlimited sessions',
-                  'Real-time posture tracking',
-                  'Visual & audio alerts',
-                  'Sensitivity presets',
-                  'Session statistics',
-                  '100% private & local'
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <svg className="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a 
-                href="#waitlist"
-                className="block w-full py-3 backdrop-blur-sm bg-white/5 border border-white/10 rounded-xl text-white font-medium text-center hover:bg-white/10 transition-all"
-              >
-                Join Waitlist
-              </a>
-            </div>
-
-            {/* Pro+ */}
-            <div className="relative backdrop-blur-xl bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-3xl p-8 shadow-xl shadow-emerald-500/10">
-              <div className="absolute -top-3 right-6 bg-gradient-to-r from-emerald-400 to-cyan-400 text-black text-xs font-bold px-3 py-1 rounded-full">
-                BEST VALUE
-              </div>
-              <div className="text-emerald-400 font-medium mb-2">Pro+</div>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-4xl font-bold">$9</span>
-                <span className="text-white/30 line-through text-lg">$18</span>
-                <span className="text-white/30">/month</span>
-              </div>
-              <p className="text-white/40 text-sm mb-6">For power users & professionals</p>
-              <ul className="space-y-4 mb-8">
-                {[
-                  'Everything in Pro',
-                  'Detailed analytics dashboard',
-                  'Weekly posture reports',
-                  'Posture score trends over time',
-                  'Multiple profiles (work, gaming)',
-                  'Custom sounds & alert styles',
-                  'Break reminders with exercises',
-                  'Priority support'
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm">
-                    <svg className="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <a 
-                href="#waitlist"
-                className="block w-full py-3 bg-gradient-to-r from-emerald-400 to-cyan-400 text-black font-semibold rounded-xl text-center hover:shadow-lg hover:shadow-emerald-500/25 transition-all"
-              >
-                Join Waitlist
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Waitlist */}
       <section id="waitlist" className="py-24 px-6">
         <div className="max-w-xl mx-auto">
@@ -615,8 +487,6 @@ function App() {
         }
       `}</style>
 
-      {/* Launch Modal */}
-      <LaunchModal isOpen={showLaunchModal} onClose={() => setShowLaunchModal(false)} />
     </div>
   )
 }
